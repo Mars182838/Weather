@@ -7,11 +7,14 @@
 //
 
 #import "AppDelegate.h"
+#import "DataBase.h"
+#import "WeatherViewController.h"
 
 @implementation AppDelegate
 
 - (void)dealloc
 {
+    [_weatherController release];
     [_window release];
     [super dealloc];
 }
@@ -19,7 +22,36 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     self.window = [[[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]] autorelease];
-    // Override point for customization after application launch.
+   
+    _weatherController = [[WeatherViewController alloc] initWithNibName:nil bundle:nil];
+    
+    UINavigationController *navigation = [[UINavigationController alloc] initWithRootViewController:_weatherController];
+    
+    self.window.rootViewController = navigation;
+
+    [navigation release];
+    
+    _isFirstRun = [[[NSUserDefaults standardUserDefaults] valueForKey:IS_FIRST_RUN] boolValue];
+    if (!_isFirstRun) {
+        
+        [[NSUserDefaults standardUserDefaults] setValue:[NSNumber numberWithBool:YES] forKey:IS_FIRST_RUN];
+    
+        sqlite3 *db;
+        db = [DataBase openDB];
+        char *errorMsg;
+        
+        const char *createSql = "create table if not exists 'Weather' (id integer primary key, cityPlace text,weather text,temperature text,wind text,advise text,date text)";
+        if (sqlite3_exec(db, createSql, NULL, NULL, &errorMsg) == SQLITE_OK) {
+            NSLog(@"creat table ok");
+        }
+        
+        if (errorMsg!= nil) {
+            NSLog(@" want%s",errorMsg);
+        }
+        
+        ///关闭数据库
+        [DataBase closeDB];
+    }
     self.window.backgroundColor = [UIColor whiteColor];
     [self.window makeKeyAndVisible];
     return YES;
